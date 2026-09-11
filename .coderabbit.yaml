@@ -1,0 +1,34 @@
+# CodeRabbit Configuration for Audit Mesh
+# Enterprise Financial Investigation Platform
+version: "2"
+language: "en-US"
+tone_instructions: "Rigorous, enterprise-grade financial auditor and principal software architect perspective. Enforce Clean Architecture, strict typing, security, and audit explainability."
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!node_modules/**"
+    - "!dist/**"
+    - "!build/**"
+    - "!**/*.lock"
+    - "!**/*.svg"
+
+rules:
+  - id: "enforce-clean-architecture"
+    description: "Ensure presentation layers do not query the database directly, controllers do not contain business logic, and services depend on abstractions."
+  - id: "strict-no-any"
+    description: "Forbid TypeScript 'any' type in all frontend and backend code. Enforce strong interfaces and types."
+  - id: "security-audit"
+    description: "Verify tenant isolation, organization_id validation extracted only from verified JWT, and parameterized DB queries."
+  - id: "explainability-check"
+    description: "Ensure that all risk scores, anomaly detections, and AI findings include clear evidence, triggered rules, and human-in-the-loop decision capability."
+  - id: "design-tokens"
+    description: "Ensure all UI colors, spacing, and typography use CSS Custom Properties rather than hardcoded hex or pixel values."
