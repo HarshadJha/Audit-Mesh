@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "description": "Enterprise Financial Investigation Backend for Audit Mesh",
   "main": "dist/server.js",
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "seed": "tsc && node dist/scripts/seedDatabase.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
