@@ -24,8 +24,11 @@ All micro-fraud patterns, their required data fields, detection logic, and datas
 8. [Circular Employee-Vendor Relationship](#8-circular-employee-vendor-relationship)
 9. [Behavioral Shift Detection](#9-behavioral-shift-detection)
 10. [Approval Threshold Evasion](#10-approval-threshold-evasion)
-11. [Master Data Schema](#master-data-schema)
-12. [Dataset Design Decisions](#dataset-design-decisions)
+11. [Shared Bank Account (Shadow Vendor)](#11-shared-bank-account-shadow-vendor)
+12. [Dormant / Shell Vendor Sudden Burst](#12-dormant--shell-vendor-sudden-burst)
+13. [Inverted / Cross-Approval Reciprocal Loops](#13-inverted--cross-approval-reciprocal-loops)
+14. [Master Data Schema](#master-data-schema)
+15. [Dataset Design Decisions](#dataset-design-decisions)
 
 ---
 
@@ -272,7 +275,61 @@ Approvals systematically cluster just below the policy approval threshold - e.g.
 
 ---
 
-## Master Data Schema
+## 11. Shared Bank Account (Shadow Vendor)
+
+### What It Is
+Two or more ostensibly distinct vendors share the exact same bank account number and IFSC/routing details. Often indicates shadow entities created to bypass sole-source limits or split vendor bids collusively.
+
+### Required Fields
+- `vendor_id`
+- `vendor_name`
+- `bank_account`
+- `vendor_registration`
+
+### Detection Logic
+- Group vendors by `bank_account`
+- Flag if `count(distinct vendor_id) > 1` on the same bank account
+- Risk Level: HIGH / CRITICAL (immediate compliance violation)
+
+---
+
+## 12. Dormant / Shell Vendor Sudden Burst
+
+### What It Is
+A vendor with zero billing activity for an extended period (6-12 months) suddenly receives an influx of high-value invoices within a short span (e.g., 10-14 days), often indicating shell company activation or year-end budget dumping.
+
+### Required Fields
+- `vendor_id`
+- `date`
+- `amount`
+- `invoice_number`
+
+### Detection Logic
+- Calculate inactivity duration: `days_since_last_invoice = current_invoice_date - previous_invoice_date`
+- Flag if `days_since_last_invoice > 180 days` AND current batch spending in 14 days > 2x historical annual median
+- Risk Level: HIGH
+
+---
+
+## 13. Inverted / Cross-Approval Reciprocal Loops
+
+### What It Is
+An employee approves their own expense request, or two peer employees approve each other's purchase orders reciprocally to evade independent supervisor scrutiny.
+
+### Required Fields
+- `employee_id` (requester)
+- `approver_id`
+- `amount`
+- `date`
+
+### Detection Logic
+- Self-Approval: Flag if `employee_id == approver_id`
+- Reciprocal Cross-Approval Loop: Check directed graph pairs `(A -> approves B)` and `(B -> approves A)`. Flag if reciprocal approvals occur >= 3 times within 60 days
+- Risk Level: HIGH
+
+---
+
+## 14. Master Data Schema
 
 ### Transaction (Core Table)
 ```
@@ -353,15 +410,19 @@ hire_date              DATE
 | Circular relationships | 2 |
 | Behavioral shift employees | 3 |
 | Round amount anomaly vendors | 4 |
+| Shared bank account vendors | 2 |
+| Dormant shell vendor bursts | 2 |
+| Inverted/cross-approval loops | 2 |
 
 ### Critical Field Notes (NON-NEGOTIABLE)
 - `timestamp` (not just `date`) is NON-NEGOTIABLE - off-hours detection requires it
 - `expense_subcategory` and `description` are NON-NEGOTIABLE - expense inflation detection requires route/purpose granularity
 - `vendor_address` and `employee_address` are NON-NEGOTIABLE - circular relationship detection requires them
+- `bank_account` is NON-NEGOTIABLE - shared account detection requires it
 - `receipt_available` boolean improves confidence scoring for expense fraud
 
 ---
 
-*DETECTION_PATTERNS.md - Version 1.0*
+*DETECTION_PATTERNS.md - Version 1.1*
 *This document must be updated whenever a new detection pattern is identified.*
 *All AI agents must read this before implementing any detection or ML logic.*
